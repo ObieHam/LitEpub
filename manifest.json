@@ -1,0 +1,15 @@
+{
+  "name": "WebToEpub Converter",
+  "short_name": "WebToEpub",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6200ea",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3389/3389081.png", 
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
