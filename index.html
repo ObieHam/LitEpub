@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebToEpub PWA</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6200ea">
+</head>
+<body>
+    <div class="container">
+        <h1>WebToEpub</h1>
+        <p>Paste a Literotica story or series link to download as EPUB.</p>
+        
+        <input type="text" id="urlInput" placeholder="https://www.literotica.com/s/...">
+        <button id="convertBtn">Download EPUB</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <!-- Required Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <!-- Main Application Logic -->
+    <script src="app.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        // Only register Service Worker on HTTP/HTTPS to prevent local file errors
+        if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
+            navigator.serviceWorker.register('sw.js').catch(err => {
+                console.warn('Service Worker registration failed:', err);
+            });
+        }
+    </script>
+</body>
+</html>
