@@ -485,7 +485,7 @@ ${navMap}
           
           showStatus('Fetching all chapters in parallel...', 'info');
           
-          const batchSize = 5;
+          const batchSize = 3; // Reduced batch size to avoid proxy overload
           const chapters = [];
           
           for (let i = 0; i < seriesData.works.length; i += batchSize) {
@@ -493,20 +493,29 @@ ${navMap}
             showProgress(i, seriesData.works.length, 'Fetching chapters ' + (i + 1) + '-' + Math.min(i + batchSize, seriesData.works.length) + '...');
             
             const batchPromises = batch.map(async function(work) {
-              const storyHTML = await fetchWithProxy(work.url);
-              const storyData = parseStory(storyHTML, work.url);
-              
-              let content = storyData.content;
-              if (storyData.totalPages > 1) {
-                const additionalContent = await fetchAllPages(storyData.baseUrl, storyData.totalPages);
-                content += additionalContent;
+              try {
+                const storyHTML = await fetchWithProxy(work.url);
+                const storyData = parseStory(storyHTML, work.url);
+                
+                let content = storyData.content;
+                if (storyData.totalPages > 1) {
+                  const additionalContent = await fetchAllPages(storyData.baseUrl, storyData.totalPages);
+                  content += additionalContent;
+                }
+                
+                return {
+                  title: storyData.title,
+                  content: content,
+                  author: storyData.author
+                };
+              } catch (error) {
+                console.error('Error fetching chapter:', work.title, error);
+                return {
+                  title: work.title,
+                  content: '<p>Error loading chapter: ' + error.message + '</p>',
+                  author: 'Unknown'
+                };
               }
-              
-              return {
-                title: storyData.title,
-                content: content,
-                author: storyData.author
-              };
             });
             
             const batchResults = await Promise.all(batchPromises);
@@ -515,7 +524,7 @@ ${navMap}
             }
             
             if (i + batchSize < seriesData.works.length) {
-              await new Promise(function(resolve) { setTimeout(resolve, 500); });
+              await new Promise(function(resolve) { setTimeout(resolve, 1000); });
             }
           }
           
