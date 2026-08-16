@@ -1,4 +1,10 @@
-const CORS_PROXY = "https://corsproxy.io/?";
+// List of CORS proxies to try, in order. If one fails (e.g. rate-limited,
+// blocked, or returns a non-OK status), the next one is tried automatically.
+const CORS_PROXIES = [
+    (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+    (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+];
 
 document.getElementById('convertBtn').addEventListener('click', async () => {
     let url = document.getElementById('urlInput').value.trim();
@@ -33,33 +39,41 @@ document.getElementById('convertBtn').addEventListener('click', async () => {
 });
 
 /**
- * FETCH HELPER: Adds proxy, cache-busting and no-referrer
+ * FETCH HELPER: Adds proxy, cache-busting and no-referrer.
+ * Tries each proxy in CORS_PROXIES in turn; only throws if all of them fail.
  */
 async function fetchPage(url) {
-    try {
-        // Add timestamp to prevent caching by the proxy/browser
-        const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
-        const targetUrl = CORS_PROXY + encodeURIComponent(url + cacheBuster);
-        
-        const response = await fetch(targetUrl, {
-            referrerPolicy: 'no-referrer'
-        });
-        
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        
-        const text = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(text, "text/html");
-        
-        // Cloudflare check
-        if (doc.title.includes("Just a moment") || doc.title.includes("Cloudflare")) {
-             throw new Error("Blocked by Cloudflare protection. Try a different network.");
+    // Add timestamp to prevent caching by the proxy/browser
+    const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
+    const fullUrl = url + cacheBuster;
+
+    let lastErr;
+    for (const buildProxyUrl of CORS_PROXIES) {
+        try {
+            const targetUrl = buildProxyUrl(fullUrl);
+            const response = await fetch(targetUrl, {
+                referrerPolicy: 'no-referrer'
+            });
+
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+            const text = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, "text/html");
+
+            // Cloudflare check
+            if (doc.title.includes("Just a moment") || doc.title.includes("Cloudflare")) {
+                throw new Error("Blocked by Cloudflare protection. Try a different network.");
+            }
+
+            return doc; // Success — no need to try further proxies
+        } catch (err) {
+            lastErr = err;
+            console.warn(`Proxy failed (${buildProxyUrl('')}), trying next: ${err.message}`);
         }
-        
-        return doc;
-    } catch (err) {
-        throw new Error(`Network error: ${err.message}`);
     }
+
+    throw new Error(`Network error: ${lastErr ? lastErr.message : "all proxies failed"}`);
 }
 
 /**
