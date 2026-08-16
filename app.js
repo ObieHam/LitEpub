@@ -1,9 +1,7 @@
-// List of CORS proxies to try, in order. If one fails (e.g. rate-limited,
-// blocked, or returns a non-OK status), the next one is tried automatically.
+// Same-origin serverless proxy (see api/proxy.js) — avoids third-party
+// CORS proxy flakiness and origin whitelisting entirely.
 const CORS_PROXIES = [
-    (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-    (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-    (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    (u) => `/api/proxy?url=${encodeURIComponent(u)}`,
 ];
 
 document.getElementById('convertBtn').addEventListener('click', async () => {
